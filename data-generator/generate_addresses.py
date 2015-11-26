@@ -5,8 +5,14 @@ from kafka import SimpleProducer, KafkaClient
 import time
 import random
 import argparse
+import logging
 
-num_messages = 10
+logging.basicConfig(
+    format='%(asctime)s.%(msecs)s:%(name)s:%(thread)d:%(levelname)s:%(process)d:%(message)s',
+    level=logging.DEBUG
+)
+
+logger = logging.getLogger(__name__)
 
 class Address(dexml.Model):
     street = fields.String(tagname="street")
@@ -17,12 +23,10 @@ class Address(dexml.Model):
 
 class RandomXMLAddressProducer:
     #universal fake factory for producer class
-    fake = Factory.create('en_US')
-    def __init__():
-        pass
+    fake_factory = Factory.create('en_US')
     @classmethod
-    def create_address(cls, fake_factory):
-        addr = fake_factory.address()
+    def create_address(cls):
+        addr = cls.fake_factory.address()
         (street, local) = addr.split("\n")
         lsplits = local.split()
         if len(lsplits) == 4:
@@ -34,22 +38,27 @@ class RandomXMLAddressProducer:
             (city, state, zip) = lsplits
             city = city.replace(",","")
             address = Address(street=street, city=city, state=state, zip=zip)
-            return address.render(fragment=True)
-        @classmethod
-        def push_addresses_to_kafka(cls, producer, topic, min_delay=0, max_delay=50, max_messages=None):
-            ct = 0
-            while True:
-                if max_messages and ct == max_messages:
-                    break
-                try:
-                    addr = create_address()
-                except:
-                    #not going to worry for fake data
-                    continue
-                producer.send_messages(topic, create_address())
-                #hackitude: sleep some milliseconds in range
-                time.sleep(random.randrange(min_delay, max_delay)/1000.0)
-                ct += 1
+        return address.render(fragment=True)
+    @classmethod
+    def produce(cls, producer, topic, min_delay=0, max_delay=50, max_messages=None):
+        ct = 0
+        topic = bytes(topic)
+        while True:
+            if max_messages and ct == max_messages:
+                logger.debug("Shutting down")
+                break
+            try:
+                addr = cls.create_address()
+            except Exception as e:
+                logger.debug(e)
+                #not going to worry for fake data
+                continue
+            producer.send_messages(topic, bytes(addr))
+            #hackitude: sleep some milliseconds in range
+            time.sleep(random.randrange(min_delay, max_delay)/1000.0)
+            ct += 1
+
+#TODO: add support for multiple generators, tornado/multiprocessing
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -61,7 +70,7 @@ def get_args():
     )
     # Add arguments
     parser.add_argument(
-        '-z', '--zookeeper', type=str, help='Kafka Zookeeper host:port', required=True)
+        '-k', '--kafka', type=str, help='Kafka host:port, usually somehost:9092', required=True)
     parser.add_argument(
         '-t', '--topic', type=str, help='Kafka Topic', required=True)
     parser.add_argument(
@@ -71,12 +80,12 @@ def get_args():
     parser.add_argument(
         '-l', '--limit', type=int, help='Maximum number of messages to send, def: Inf', required=False, default=None)
     args = parser.parse_args()
-    return args.zookeeper, args.topic, args.min_delay, args.max_delay, args.limit
+    return args.kafka, args.topic, args.mindelay, args.maxdelay, args.limit
 
 
 if __name__ == '__main__':
-    (zookeeper, topic, min_delay, max_delay, limit) = get_args()
-    kafka = KafkaClient(zookeeper)
+    (kafka_host, topic, min_delay, max_delay, limit) = get_args()
+    kafka = KafkaClient(kafka_host)
     producer = SimpleProducer(kafka)
-    RandomXMLAddressProducer.push_addresses_to_kafka(producer, topic, min_delay, max_delay, limit)
+    RandomXMLAddressProducer.produce(producer, topic, min_delay, max_delay, limit)
 
