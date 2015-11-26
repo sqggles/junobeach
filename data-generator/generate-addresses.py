@@ -4,6 +4,7 @@ from dexml import fields
 from kafka import SimpleProducer, KafkaClient
 import time
 import random
+import argparse
 
 num_messages = 10
 
@@ -52,7 +53,12 @@ class RandomXMLAddressProducer:
 
 def get_args():
     parser = argparse.ArgumentParser(
-        description='produce random US addresses in XML format and put them on a kafka topic')
+        description="produce random US addresses in XML format and put them on\
+                     a kafka topic\n" +
+                    "ex: <Address><street>698 Arlin Crescent</street> \
+                     <city>Violetmouth</city><state>MO</state> \
+                     <zip>66549-5530</zip></Address>"
+    )
     # Add arguments
     parser.add_argument(
         '-z', '--zookeeper', type=str, help='Kafka Zookeeper host:port', required=True)
