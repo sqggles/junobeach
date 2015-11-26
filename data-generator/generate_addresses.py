@@ -7,11 +7,6 @@ import random
 import argparse
 import logging
 
-logging.basicConfig(
-    format='%(asctime)s.%(msecs)s:%(name)s:%(thread)d:%(levelname)s:%(process)d:%(message)s',
-    level=logging.DEBUG
-)
-
 logger = logging.getLogger(__name__)
 
 class Address(dexml.Model):
@@ -37,12 +32,13 @@ class RandomXMLAddressProducer:
             #one word city name
             (city, state, zip) = lsplits
             city = city.replace(",","")
-            address = Address(street=street, city=city, state=state, zip=zip)
+        address = Address(street=street, city=city, state=state, zip=zip)
         return address.render(fragment=True)
     @classmethod
     def produce(cls, producer, topic, min_delay=0, max_delay=50, max_messages=None):
         ct = 0
         topic = bytes(topic)
+        addr = None
         while True:
             if max_messages and ct == max_messages:
                 logger.debug("Shutting down")
@@ -55,7 +51,9 @@ class RandomXMLAddressProducer:
                 continue
             producer.send_messages(topic, bytes(addr))
             #hackitude: sleep some milliseconds in range
-            time.sleep(random.randrange(min_delay, max_delay)/1000.0)
+            sleep_time = random.randrange(min_delay, max_delay)/1000.0
+            logger.debug("Sleeping %.6f" % sleep_time)
+            time.sleep(sleep_time)
             ct += 1
 
 #TODO: add support for multiple generators, tornado/multiprocessing
@@ -79,12 +77,20 @@ def get_args():
         '-M', '--maxdelay', type=int, help='Maximum delay between messages in ms, def: 50', required=False, default=50)
     parser.add_argument(
         '-l', '--limit', type=int, help='Maximum number of messages to send, def: Inf', required=False, default=None)
+    parser.add_argument(
+        '-v', '--verbose', help='Turn on debug logging', action="store_true")
     args = parser.parse_args()
-    return args.kafka, args.topic, args.mindelay, args.maxdelay, args.limit
+    return args.kafka, args.topic, args.mindelay, args.maxdelay, args.limit, args.verbose
 
 
 if __name__ == '__main__':
-    (kafka_host, topic, min_delay, max_delay, limit) = get_args()
+    (kafka_host, topic, min_delay, max_delay, limit, verbose) = get_args()
+    print verbose
+    if verbose:
+        logging.basicConfig(
+            format='%(asctime)s.%(msecs)s:%(name)s:%(thread)d:%(levelname)s:%(process)d:%(message)s', 
+            level=logging.DEBUG
+        )
     kafka = KafkaClient(kafka_host)
     producer = SimpleProducer(kafka)
     RandomXMLAddressProducer.produce(producer, topic, min_delay, max_delay, limit)
