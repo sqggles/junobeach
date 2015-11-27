@@ -58,6 +58,14 @@ object KafkaAddressStream {
 	
 	LogManager.getRootLogger().setLevel(Level.WARN)
 
+  val stateCodes = List(
+    "AK","AL","AR","AZ","CA","CO","CT","DC","DE","FL",
+    "GA","HI","IA","ID","IL","IN","KS","KY","LA","MA",
+    "MD","ME","MI","MN","MO","MS","MT","NC","ND","NE",
+    "NH","NJ","NM","NV","NY","OH","OK","OR","PA","RI",
+    "SC","SD","TN","TX","UT","VA","VT","WA","WI","WV","WY"
+  )
+
 	def main(args: Array[String]) {
 		if (args.length < 2) {
 			System.err.println(s"""
@@ -83,7 +91,7 @@ object KafkaAddressStream {
 
 		val xmlfrags = messages.map(_._2)
     xmlfrags.print()
-		val addresses = xmlfrags.map(Address.parseXml)
+    val addresses = xmlfrags.map(Address.parseXml).filter( s => stateCodes.contains(s.state) )
     addresses.map( x => x.asJson ).print()
 
 		// Start the computation
