@@ -18,7 +18,7 @@ import org.apache.log4j.{ LogManager, Level }
  *   <topics> is a list of one or more kafka topics to consume from
  *
  * Example:
- *    $ bin/run-example com.nvent.KafkaAddressStream broker1-host:port,broker2-host:port \
+ *    $ bin/run-example com.nvent.loggerhead.KafkaAddressStream broker1-host:port,broker2-host:port \
  *    topic1,topic2
  */
 
@@ -33,10 +33,10 @@ object Address {
 	def parseXml(xstr: String): Address = {
     val x = XML.loadString(xstr)
     Address(
-      nodeSeqToString(x \ "@street"),
-      nodeSeqToString(x \ "@city"),
-      nodeSeqToString(x \ "@state"),
-      nodeSeqToString(x \ "@zip") 
+      nodeSeqToString(x \ "street"),
+      nodeSeqToString(x \ "city"),
+      nodeSeqToString(x \ "state"),
+      nodeSeqToString(x \ "zip") 
     )
   }
 
@@ -82,6 +82,7 @@ object KafkaAddressStream {
 			ssc, kafkaParams, topicsSet)
 
 		val xmlfrags = messages.map(_._2)
+    xmlfrags.print()
 		val addresses = xmlfrags.map(Address.parseXml)
     addresses.map( x => x.asJson ).print()
 
