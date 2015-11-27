@@ -27,12 +27,19 @@ case class Address ( street: String, city: String, state: String, zip: String )
 
 object Address {
 
-	def parseXml(x: scala.xml.Elem): Address = Address(
-		x \ "@street",
-		x \ "@city",
-		x \ "@state",
-		x \ "@zip"
-	)
+  def nodeSeqToString(nodes:scala.xml.NodeSeq): String =
+    nodes.map(_.text).mkString("")
+
+	def parseXml(xstr: String): Address = {
+    val x = XML.loadString(xstr)
+    Address(
+      nodeSeqToString(x \ "@street"),
+      nodeSeqToString(x \ "@city"),
+      nodeSeqToString(x \ "@state"),
+      nodeSeqToString(x \ "@zip") 
+    )
+  }
+
 
 	// implicit conversion to json with argonaut
 	implicit def AddressEncodeJson: EncodeJson[Address] =
@@ -75,8 +82,8 @@ object KafkaAddressStream {
 			ssc, kafkaParams, topicsSet)
 
 		val xmlfrags = messages.map(_._2)
-		val addresses = lines.flatMap(Address.parse)
-		addresses.map( x => x.asJson ).map( x => x.toString() ).foreach(println)
+		val addresses = xmlfrags.map(Address.parseXml)
+    addresses.map( x => x.asJson ).print()
 
 		// Start the computation
 		ssc.start()
