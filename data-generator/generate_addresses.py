@@ -85,7 +85,6 @@ def get_args():
 
 if __name__ == '__main__':
     (kafka_host, topic, min_delay, max_delay, limit, verbose) = get_args()
-    print verbose
     if verbose:
         logging.basicConfig(
             format='%(asctime)s.%(msecs)s:%(name)s:%(thread)d:%(levelname)s:%(process)d:%(message)s', 
