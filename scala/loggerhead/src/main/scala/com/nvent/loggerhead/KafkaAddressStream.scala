@@ -36,7 +36,7 @@ object Address {
       nodeSeqToString(x \ "street"),
       nodeSeqToString(x \ "city"),
       nodeSeqToString(x \ "state"),
-      nodeSeqToString(x \ "zip") 
+      nodeSeqToString(x \ "zip").split("-")(0)
     )
   }
 
