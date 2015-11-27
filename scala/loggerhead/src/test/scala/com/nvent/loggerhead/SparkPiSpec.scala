@@ -13,7 +13,7 @@ class SparkPiSpec extends FunSpec with BeforeAndAfter{
 
   describe("Pi") {
     it("should be less than 4 and more than 3"){
-      val sp = new SparkPi(sc, 1, 100)
+      val sp = new SparkPi(sc, 1, 1000)
       val result = sp.exec()
       assert(result > 3 && result < 4)
     }
