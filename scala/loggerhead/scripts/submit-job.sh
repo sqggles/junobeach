@@ -5,5 +5,6 @@ SPARK_HOME=$SPARK14
 SPARK_MASTER="local[4]"
 
 KAFKA_HOST=localhost:9092
+KAFKA_HOST=sandbox.hortonworks.com:6667
 
 $SPARK_HOME/bin/spark-submit --class com.nvent.loggerhead.KafkaAddressStream --master $SPARK_MASTER target/scala-2.10/loggerhead.jar $KAFKA_HOST testing
