@@ -7,7 +7,9 @@ import argonaut._, Argonaut._
 
 import org.apache.spark.streaming._
 import org.apache.spark.streaming.kafka._
+import org.apache.spark.sql.hive._
 import org.apache.spark.SparkConf
+import org.apache.spark.SparkContext
 
 import org.apache.log4j.{ LogManager, Level }
 
@@ -76,12 +78,21 @@ object KafkaAddressStream {
 				""".stripMargin)
 			System.exit(1)
 		}
-
+    //kafka arguments
 		val Array(brokers, topics) = args
 
-		// Create context with 2 second batch interval
 		val sparkConf = new SparkConf().setAppName("KafkaAddressStream")
-		val ssc = new StreamingContext(sparkConf, Seconds(2))
+    val sc = new SparkContext(sparkConf)
+
+    //create a Hive Context
+    val hqlc = new org.apache.spark.sql.hive.HiveContext(sc)
+		
+    val latlongLookup = hqlc.sql("SELECT zip, latitude, longitude, timezone, dst FROM loggerhead.us_zip_to_lat_long")
+
+    latlongLookup.toJSON.saveAsTextFile("hdfs://sandbox.hortonworks.com:8020/user/ajish/latLongExtract")
+
+    // Create context with 2 second batch interval
+    val ssc = new StreamingContext(sparkConf, Seconds(2))
 
 		// Create direct kafka stream with brokers and topics
 		val topicsSet = topics.split(",").toSet
@@ -91,6 +102,8 @@ object KafkaAddressStream {
 
 		val xmlfrags = messages.map(_._2)
     xmlfrags.print()
+    // -> parse XML 
+    // -> filter to include only the 51 states ->
     val addresses = xmlfrags.map(Address.parseXml).filter( s => stateCodes.contains(s.state) )
     addresses.map( x => x.asJson ).print()
 

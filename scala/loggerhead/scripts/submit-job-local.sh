@@ -10,6 +10,7 @@ SPARK_HOME=$SPARK14
 KAFKA_BROKERS=$KAFKA_BROKER_LOCAL
 KAFKA_TOPICS=testing
 
-SPARK_HOME=$SPARK14 HADOOP_CONF_DIR=$HADOOP_CONF $SPARK_HOME/bin/spark-submit \
+HADOOP_HOME=/opt/local/hadoop-2.7.1 SPARK_HOME=$SPARK14 HADOOP_CONF_DIR=$HADOOP_CONF $SPARK_HOME/bin/spark-submit \
+  --conf spark.driver.allowMultipleContexts=true \
   --class com.nvent.loggerhead.KafkaAddressStream \
   target/scala-2.10/loggerhead.jar $KAFKA_BROKERS $KAFKA_TOPICS
