@@ -8,6 +8,9 @@ import argonaut._, Argonaut._
 import org.apache.spark.streaming._
 import org.apache.spark.streaming.kafka._
 import org.apache.spark.sql.hive._
+import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.SaveMode
+import org.apache.spark.sql.functions._
 import org.apache.spark.SparkConf
 import org.apache.spark.SparkContext
 
@@ -58,6 +61,10 @@ object Address {
 
 object KafkaAddressStream {
 	
+  val WINDOW_LENGTH = new Duration(86400 * 1000)
+  val SLIDE_INTERVAL = new Duration(10 * 1000)
+
+
 	LogManager.getRootLogger().setLevel(Level.WARN)
 
   val stateCodes = List(
@@ -85,11 +92,15 @@ object KafkaAddressStream {
     val sc = new SparkContext(sparkConf)
 
     //create a Hive Context
-    val hqlc = new org.apache.spark.sql.hive.HiveContext(sc)
-	  hqlc.sql("USE loggerhead;")	
-    val latlongLookup = hqlc.sql("SELECT zip, latitude, longitude, timezone, dst FROM us_zip_to_lat_long;")
+    val sqlContext = new org.apache.spark.sql.hive.HiveContext(sc)
+		import sqlContext.implicits._
 
-    latlongLookup.toJSON.saveAsTextFile("hdfs://sandbox.hortonworks.com:8020/user/ajish/latLongExtract")
+		// fetch the lookup table
+	  sqlContext.sql("USE loggerhead")	
+    val latlongLookup = sqlContext.sql("SELECT zip, latitude, longitude, timezone, dst FROM us_zip_to_lat_long")
+		latlongLookup.cache()
+
+    //latlongLookup.toJSON.saveAsTextFile("hdfs://sandbox.hortonworks.com:8020/user/ajish/latLongExtract")
 
     // Create context with 2 second batch interval
     val ssc = new StreamingContext(sparkConf, Seconds(2))
@@ -100,13 +111,29 @@ object KafkaAddressStream {
 		val messages = KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](
 			ssc, kafkaParams, topicsSet)
 
-		val xmlfrags = messages.map(_._2)
-    xmlfrags.print()
-    // -> parse XML 
-    // -> filter to include only the 51 states ->
-    val addresses = xmlfrags.map(Address.parseXml).filter( s => stateCodes.contains(s.state) )
-    addresses.map( x => x.asJson ).print()
+		val xmlfragsDSm = messages.map(_._2)
+    
+		// -> parse XML 
+    // -> filter to include only the 51 states
+    val addressesDSm = xmlfragsDSm.map(Address.parseXml).filter( s => stateCodes.contains(s.state) )
+    val windowDSm = addressesDSm.window(WINDOW_LENGTH, SLIDE_INTERVAL) 
 
+		windowDSm.foreachRDD(addrs => {
+			if (addrs.count() == 0) {
+				println("No addresses received in this time interval")
+			} else {
+				addrs.toDF()
+
+				val top10StatesLast24Hr = addrs.groupBy("state").count()
+				val stateOutageCentroidsLast24Hr = addrs.join(latlongLookup, $"zip" === $"zip")
+																						    .groupBy("state")
+																								.agg( $"state", count(), avg("latitude"), avg("longitude") )
+
+				// Persist 
+				top10StatesLast24Hr.save("/tmp/topTenPostsLast24Hour.parquet", "parquet", SaveMode.Overwrite)
+				stateOutageCentroidsLast24Hr.save("/tmp/stateOutageCentroidsLast24Hour.parquet", "parquet", SaveMode.Overwrite)
+			}
+		})
 		// Start the computation
 		ssc.start()
 		ssc.awaitTermination()
