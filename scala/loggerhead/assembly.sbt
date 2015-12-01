@@ -20,6 +20,7 @@ mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
     case "META-INF/mailcap" => MergeStrategy.last
     case "META-INF/mimetypes.default" => MergeStrategy.last
     case "plugin.properties" => MergeStrategy.last
+    case "plugin.xml" => MergeStrategy.last
     case "log4j.properties" => MergeStrategy.last
     case x => old(x)
   }

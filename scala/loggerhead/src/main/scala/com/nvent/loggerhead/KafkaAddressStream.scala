@@ -122,16 +122,18 @@ object KafkaAddressStream {
 			if (addrs.count() == 0) {
 				println("No addresses received in this time interval")
 			} else {
-				addrs.toDF()
+				val addrsDF = addrs.toDF()
 
-				val top10StatesLast24Hr = addrs.groupBy("state").count()
-				val stateOutageCentroidsLast24Hr = addrs.join(latlongLookup, $"zip" === $"zip")
-																						    .groupBy("state")
-																								.agg( $"state", count(), avg("latitude"), avg("longitude") )
+				val top10StatesLast24Hr = addrsDF.groupBy("state").count()
+				val stateOutageCentroidsLast24Hr = addrsDF.join(latlongLookup, $"zip" === $"zip")
+																						      .groupBy("state")
+																								  .agg( $"state", count("state"), avg("latitude"), avg("longitude") )
 
 				// Persist 
 				top10StatesLast24Hr.save("/tmp/topTenPostsLast24Hour.parquet", "parquet", SaveMode.Overwrite)
 				stateOutageCentroidsLast24Hr.save("/tmp/stateOutageCentroidsLast24Hour.parquet", "parquet", SaveMode.Overwrite)
+
+				//TODO: push results to hive and stress test
 			}
 		})
 		// Start the computation
