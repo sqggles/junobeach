@@ -86,8 +86,8 @@ object KafkaAddressStream {
 
     //create a Hive Context
     val hqlc = new org.apache.spark.sql.hive.HiveContext(sc)
-		
-    val latlongLookup = hqlc.sql("SELECT zip, latitude, longitude, timezone, dst FROM loggerhead.us_zip_to_lat_long")
+	  hqlc.sql("USE loggerhead;")	
+    val latlongLookup = hqlc.sql("SELECT zip, latitude, longitude, timezone, dst FROM us_zip_to_lat_long;")
 
     latlongLookup.toJSON.saveAsTextFile("hdfs://sandbox.hortonworks.com:8020/user/ajish/latLongExtract")
 
