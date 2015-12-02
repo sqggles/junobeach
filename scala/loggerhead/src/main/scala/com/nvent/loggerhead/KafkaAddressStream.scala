@@ -103,7 +103,7 @@ object KafkaAddressStream {
     //latlongLookup.toJSON.saveAsTextFile("hdfs://sandbox.hortonworks.com:8020/user/ajish/latLongExtract")
 
     // Create context with 2 second batch interval
-    val ssc = new StreamingContext(sparkConf, Seconds(2))
+    val ssc = new StreamingContext(sc, Seconds(2))
 
 		// Create direct kafka stream with brokers and topics
 		val topicsSet = topics.split(",").toSet

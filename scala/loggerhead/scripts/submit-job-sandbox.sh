@@ -18,5 +18,6 @@ spark-submit \
   --master $SPARK_MASTER \
   --verbose \
   --jars $DATANUCLEUS_JARS \
+  --files /etc/spark/conf/hive-site.xml \
   target/scala-2.10/loggerhead.jar $KAFKA_BROKERS $KAFKA_TOPICS
 
