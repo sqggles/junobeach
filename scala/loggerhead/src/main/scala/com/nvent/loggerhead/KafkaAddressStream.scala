@@ -61,9 +61,9 @@ object Address {
 
 object KafkaAddressStream {
 	
-  val WINDOW_LENGTH = new Duration(86400 * 1000)
+  val WINDOW_LENGTH = new Duration(10 * 60 * 1000)
   val SLIDE_INTERVAL = new Duration(10 * 1000)
-
+  val BATCH_INTERVAL = new Duration(2 * 1000)
 
 	LogManager.getRootLogger().setLevel(Level.WARN)
 
@@ -102,8 +102,8 @@ object KafkaAddressStream {
 
     //latlongLookup.toJSON.saveAsTextFile("hdfs://sandbox.hortonworks.com:8020/user/ajish/latLongExtract")
 
-    // Create context with 2 second batch interval
-    val ssc = new StreamingContext(sc, Seconds(2))
+    // Create context with 
+    val ssc = new StreamingContext(sc, BATCH_INTERVAL)
 
 		// Create direct kafka stream with brokers and topics
 		val topicsSet = topics.split(",").toSet
@@ -130,8 +130,8 @@ object KafkaAddressStream {
 																								  .agg( $"state", count("state"), avg("latitude"), avg("longitude") )
 
 				// Persist 
-				top10StatesLast24Hr.save("/tmp/topTenPostsLast24Hour.parquet", "parquet", SaveMode.Overwrite)
-				stateOutageCentroidsLast24Hr.save("/tmp/stateOutageCentroidsLast24Hour.parquet", "parquet", SaveMode.Overwrite)
+				top10StatesLast24Hr.save("/tmp/topTenPostsLast1min.parquet", "parquet", SaveMode.Overwrite)
+				stateOutageCentroidsLast24Hr.save("/tmp/stateOutageCentroidsLast1min.parquet", "parquet", SaveMode.Overwrite)
 
 				//TODO: push results to hive and stress test
 			}

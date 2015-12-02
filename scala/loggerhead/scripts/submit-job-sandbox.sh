@@ -16,6 +16,9 @@ KAFKA_TOPICS=testing
 spark-submit \
   --class com.nvent.loggerhead.KafkaAddressStream \
   --master $SPARK_MASTER \
+  --num-executors 5 \
+  --driver-memory 1g \
+  --executor-cores 1 \
   --verbose \
   --jars $DATANUCLEUS_JARS \
   --files /etc/spark/conf/hive-site.xml \
