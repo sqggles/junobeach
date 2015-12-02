@@ -4,9 +4,9 @@ SPARK15=/opt/local/spark-1.5.2-bin-hadoop2.6
 
 #needed for working with hive metastore
 DATANUCLEUS_JARS=`ls -1 $SPARK14_SRC/lib_managed/jars/datanucleus-* | tr "\n" ","`
-HIVE_SITE=$SPARK14_SRC/conf/hive-site.xml
+HIVE_SITE=config/hive-site.xml
 
-SPARK_MASTER_HWX=yarn-cluster
+SPARK_MASTER_HWX=yarn-client
 
 KAFKA_BROKER_LOCAL=localhost:9092
 KAFKA_BROKER_HWX=sandbox.hortonworks.com:6667
@@ -21,5 +21,6 @@ SPARK_HOME=$SPARK14_SRC HADOOP_CONF_DIR=$HADOOP_CONF $SPARK_HOME/bin/spark-submi
   --class com.nvent.loggerhead.KafkaAddressStream \
   --master $SPARK_MASTER \
   --jars $DATANUCLEUS_JARS \
+  --files $HIVE_SITE \
   --verbose \
   target/scala-2.10/loggerhead.jar $KAFKA_BROKERS $KAFKA_TOPICS

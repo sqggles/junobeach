@@ -4,10 +4,14 @@ import kafka.serializer.StringDecoder
 
 import scala.xml._
 import argonaut._, Argonaut._
+import java.sql.Timestamp
 
+import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming._
 import org.apache.spark.streaming.kafka._
 import org.apache.spark.sql.hive._
+import org.apache.spark.sql.hive.orc._
+import org.apache.spark.sql.Row
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.SaveMode
 import org.apache.spark.sql.functions._
@@ -58,12 +62,13 @@ object Address {
 
 }
 
+case class StateOutageAggregate( ts: java.sql.Timestamp, state: String, count: Int, latMean: Float, longMean: Float )
 
 object KafkaAddressStream {
 	
-  val WINDOW_LENGTH = new Duration(10 * 60 * 1000)
-  val SLIDE_INTERVAL = new Duration(10 * 1000)
-  val BATCH_INTERVAL = new Duration(2 * 1000)
+  val WINDOW_LENGTH = new Duration(30 * 1000)
+  val SLIDE_INTERVAL = new Duration(5 * 1000)
+  val BATCH_INTERVAL = new Duration(1 * 1000)
 
 	LogManager.getRootLogger().setLevel(Level.WARN)
 
@@ -99,8 +104,17 @@ object KafkaAddressStream {
 	  sqlContext.sql("USE loggerhead")	
     val latlongLookup = sqlContext.sql("SELECT zip, latitude, longitude, timezone, dst FROM us_zip_to_lat_long")
 		latlongLookup.cache()
-
+    latlongLookup.show(5)
     //latlongLookup.toJSON.saveAsTextFile("hdfs://sandbox.hortonworks.com:8020/user/ajish/latLongExtract")
+
+    // check that the output tables are set up in Hive
+    // TODO: go over Ranger HiveAuthorizer permission in secure cluster mode
+
+    //sqlContext.sql("CREATE TABLE IF NOT EXISTS outage_addresses(street STRING, city STRING, state STRING, zip STRING) STORED AS orc")
+    //sqlContext.sql("CREATE TABLE IF NOT EXISTS state_outage_centroids(ts TIMESTAMP, state STRING, count INT, latm FLOAT, longm FLOAT) STORED AS orc")
+    //case class Address ( street: String, city: String, state: String, zip: String )
+    //case class StateOutageAggregate( ts: java.sql.Timestamp, state: String, count: Int, latm: Float, longm: Float )
+
 
     // Create context with 
     val ssc = new StreamingContext(sc, BATCH_INTERVAL)
@@ -116,24 +130,40 @@ object KafkaAddressStream {
 		// -> parse XML 
     // -> filter to include only the 51 states
     val addressesDSm = xmlfragsDSm.map(Address.parseXml).filter( s => stateCodes.contains(s.state) )
+    addressesDSm.print(2)
     val windowDSm = addressesDSm.window(WINDOW_LENGTH, SLIDE_INTERVAL) 
 
-		windowDSm.foreachRDD(addrs => {
+    //TODO: repartition as required for efficiency
+		windowDSm.foreachRDD( (addrs:RDD[Address], dstrTime:Time) => {
+      
+      val ts = new java.sql.Timestamp(dstrTime.milliseconds)
+
 			if (addrs.count() == 0) {
 				println("No addresses received in this time interval")
 			} else {
 				val addrsDF = addrs.toDF()
 
-				val top10StatesLast24Hr = addrsDF.groupBy("state").count()
-				val stateOutageCentroidsLast24Hr = addrsDF.join(latlongLookup, $"zip" === $"zip")
+			  // TODO: move timestamping logic here and add column to address stream before Hive write
+        
+        // Persist to Hive
+        // addrsDF.write().mode(SaveMode.Append).insertInto("outage_addresses");
+
+        val stateOutageCentroidsAgg = addrsDF.join(latlongLookup, "zip")
 																						      .groupBy("state")
 																								  .agg( $"state", count("state"), avg("latitude"), avg("longitude") )
-
-				// Persist 
-				top10StatesLast24Hr.save("/tmp/topTenPostsLast1min.parquet", "parquet", SaveMode.Overwrite)
-				stateOutageCentroidsLast24Hr.save("/tmp/stateOutageCentroidsLast1min.parquet", "parquet", SaveMode.Overwrite)
-
-				//TODO: push results to hive and stress test
+                                                  .map( row => StateOutageAggregate(ts, row.getString(0), row.getInt(1), row.getFloat(2), row.getFloat(3)) )
+                                                  .toDF()
+				// debug/demo
+        stateOutageCentroidsAgg.show(3) 
+				
+        // Persist to Parquet
+        // save("/tmp/stateOutageCentroidsAggregate.parquet", "parquet", SaveMode.Append)
+				
+        // Persist to Hive
+        // stateOutageCentroidsAgg.write().mode(SaveMode.Append).insertInto("state_outage_centroids");
+        
+        // TODO: pick format and partitioning for hive table
+				// TODO: stress test and wrap connection in forEachPartition
 			}
 		})
 		// Start the computation
