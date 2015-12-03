@@ -42,10 +42,10 @@ object Address {
 	def parseXml(xstr: String): Address = {
     val x = XML.loadString(xstr)
     Address(
-      nodeSeqToString(x \ "street"),
-      nodeSeqToString(x \ "city"),
-      nodeSeqToString(x \ "state"),
-      nodeSeqToString(x \ "zip").split("-")(0)
+      nodeSeqToString(x \ "street").replaceAll("[^A-Za-z0-9 ]", ""),
+      nodeSeqToString(x \ "city").replaceAll("[^A-Za-z0-9 ]", ""),
+      nodeSeqToString(x \ "state").replaceAll("[^A-Za-z0-9 ]", ""),
+      (nodeSeqToString(x \ "zip").split("-")(0)).replaceAll("[^0-9]", "")
     )
   }
 
@@ -62,7 +62,7 @@ object Address {
 
 }
 
-case class StateOutageAggregate( ts: java.sql.Timestamp, state: String, count: Int, latMean: Float, longMean: Float )
+case class StateOutageAggregate( ts: java.sql.Timestamp, state: String, count: Long, latMean: Double, longMean: Double )
 
 object KafkaAddressStream {
 	
@@ -111,9 +111,9 @@ object KafkaAddressStream {
     // TODO: go over Ranger HiveAuthorizer permission in secure cluster mode
 
     //sqlContext.sql("CREATE TABLE IF NOT EXISTS outage_addresses(street STRING, city STRING, state STRING, zip STRING) STORED AS orc")
-    //sqlContext.sql("CREATE TABLE IF NOT EXISTS state_outage_centroids(ts TIMESTAMP, state STRING, count INT, latm FLOAT, longm FLOAT) STORED AS orc")
+    //sqlContext.sql("CREATE TABLE IF NOT EXISTS state_outage_centroids(ts TIMESTAMP, state STRING, count BIGINT, latm DOUBLE, longm DOUBLE) STORED AS orc")
     //case class Address ( street: String, city: String, state: String, zip: String )
-    //case class StateOutageAggregate( ts: java.sql.Timestamp, state: String, count: Int, latm: Float, longm: Float )
+    //case class StateOutageAggregate( ts: java.sql.Timestamp, state: String, count: Long, latm: Double, longm: Double )
 
 
     // Create context with 
@@ -147,11 +147,13 @@ object KafkaAddressStream {
         
         // Persist to Hive
         // addrsDF.write().mode(SaveMode.Append).insertInto("outage_addresses");
-
+        
+        // TODO: set flag to prevent agg key from appearing in output (default behaviour in 1.5+)
+        
         val stateOutageCentroidsAgg = addrsDF.join(latlongLookup, "zip")
 																						      .groupBy("state")
 																								  .agg( $"state", count("state"), avg("latitude"), avg("longitude") )
-                                                  .map( row => StateOutageAggregate(ts, row.getString(0), row.getInt(1), row.getFloat(2), row.getFloat(3)) )
+                                                  .map( row => StateOutageAggregate(ts, row.getString(1), row.getLong(2), row.getDouble(3), row.getDouble(4)) )
                                                   .toDF()
 				// debug/demo
         stateOutageCentroidsAgg.show(3) 
