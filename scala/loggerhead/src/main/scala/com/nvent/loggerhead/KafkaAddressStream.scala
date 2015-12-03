@@ -61,7 +61,7 @@ object Address {
 
 }
 
-case class StateOutageAggregate( ts: java.sql.Timestamp, state: String, count: Long, latMean: Double, longMean: Double )
+case class StateOutageAggregate( ts: java.sql.Timestamp, state: String, count: Long, latm: Double, longm: Double )
 
 object KafkaAddressStream {
   
@@ -156,7 +156,7 @@ object KafkaAddressStream {
                                                   .map( row => StateOutageAggregate(ts, row.getString(1), row.getLong(2), row.getDouble(3), row.getDouble(4)) )
                                                   .toDF()
         // debug/demo
-        stateOutageCentroidsAgg.show(3) 
+        stateOutageCentroidsAgg.show(10) 
         
         // Persist to Parquet
         // save("/tmp/stateOutageCentroidsAggregate.parquet", "parquet", SaveMode.Append)
