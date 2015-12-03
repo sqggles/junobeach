@@ -49,6 +49,8 @@ class RandomXMLAddressProducer:
                 logger.debug(e)
                 #not going to worry for fake data
                 continue
+            if ct % 10000 == 0:
+                logger.info("Produced %d messages. Last record: %s" % (ct, addr))
             producer.send_messages(topic, bytes(addr))
             #hackitude: sleep some milliseconds in range
             sleep_time = random.randrange(min_delay, max_delay)/1000.0
@@ -90,6 +92,12 @@ if __name__ == '__main__':
             format='%(asctime)s.%(msecs)s:%(name)s:%(thread)d:%(levelname)s:%(process)d:%(message)s', 
             level=logging.DEBUG
         )
+    else:
+        logging.basicConfig(
+            format='%(asctime)s.%(msecs)s:%(name)s:%(thread)d:%(levelname)s:%(process)d:%(message)s', 
+            level=logging.INFO
+        )
+
     kafka = KafkaClient(kafka_host)
     producer = SimpleProducer(kafka)
     RandomXMLAddressProducer.produce(producer, topic, min_delay, max_delay, limit)
