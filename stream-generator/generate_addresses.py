@@ -7,6 +7,7 @@ import random
 import argparse
 import logging
 
+LOG_FMT='%(asctime)s.%(msecs)s:%(name)s:%(thread)d:%(levelname)s:%(process)d:%(message)s'
 logger = logging.getLogger(__name__)
 
 class Address(dexml.Model):
@@ -33,7 +34,11 @@ class RandomXMLAddressProducer:
             (city, state, zip) = lsplits
             city = city.replace(",","")
         address = Address(street=street, city=city, state=state, zip=zip)
-        return address.render(fragment=True)
+	# TODO: handle places with arbitrary number of words
+	# 3: West New York, NJ
+	# 4: El Paso De Robles, CA 
+	# 5: Friendly Village of Crooked Creek, GA
+	return address.render(fragment=True)
     @classmethod
     def produce(cls, producer, topic, min_delay=0, max_delay=50, max_messages=None):
         ct = 0
@@ -89,12 +94,12 @@ if __name__ == '__main__':
     (kafka_host, topic, min_delay, max_delay, limit, verbose) = get_args()
     if verbose:
         logging.basicConfig(
-            format='%(asctime)s.%(msecs)s:%(name)s:%(thread)d:%(levelname)s:%(process)d:%(message)s', 
+            format=LOG_FMT,
             level=logging.DEBUG
         )
     else:
         logging.basicConfig(
-            format='%(asctime)s.%(msecs)s:%(name)s:%(thread)d:%(levelname)s:%(process)d:%(message)s', 
+            format=LOG_FMT,
             level=logging.INFO
         )
 
