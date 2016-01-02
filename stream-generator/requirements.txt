@@ -1,0 +1,5 @@
+dexml==0.5.1
+fake-factory==0.5.3
+kafka-python==0.9.4
+six==1.10.0
+wheel==0.24.0
