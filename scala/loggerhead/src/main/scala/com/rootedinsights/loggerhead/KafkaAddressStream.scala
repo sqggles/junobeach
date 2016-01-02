@@ -1,4 +1,4 @@
-package com.nvent.loggerhead
+package com.rootedinsights.loggerhead
 
 import kafka.serializer.StringDecoder
 
@@ -27,7 +27,7 @@ import org.apache.log4j.{ LogManager, Level }
  *   <topics> is a list of one or more kafka topics to consume from
  *
  * Example:
- *    $ bin/run-example com.nvent.loggerhead.KafkaAddressStream broker1-host:port,broker2-host:port \
+ *    $ bin/run-example com.rootedinsights.loggerhead.KafkaAddressStream broker1-host:port,broker2-host:port \
  *    topic1,topic2
  */
 

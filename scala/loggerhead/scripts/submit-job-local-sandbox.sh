@@ -18,7 +18,7 @@ KAFKA_TOPICS=testing
 HIVE_SITE=$SPARK14_SRC/conf/hive-site.xml
 
 spark-submit \
-  --class com.nvent.loggerhead.KafkaAddressStream \
+  --class com.rootedinsights.loggerhead.KafkaAddressStream \
   target/scala-2.10/loggerhead.jar $KAFKA_BROKERS $KAFKA_TOPICS
   
 

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.nvent.loggerhead
+package com.rootedinsights.loggerhead
 
 import org.apache.spark._
 

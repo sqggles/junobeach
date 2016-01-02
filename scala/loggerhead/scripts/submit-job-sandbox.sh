@@ -14,7 +14,7 @@ KAFKA_BROKERS=$KAFKA_BROKER_HWX
 KAFKA_TOPICS=testing
 
 spark-submit \
-  --class com.nvent.loggerhead.KafkaAddressStream \
+  --class com.rootedinsights.loggerhead.KafkaAddressStream \
   --master $SPARK_MASTER \
   --num-executors 3 \
   --executor-cores 1 \

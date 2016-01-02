@@ -18,7 +18,7 @@ KAFKA_BROKERS=$KAFKA_BROKER_HWX
 KAFKA_TOPICS=testing
 
 SPARK_HOME=$SPARK14_SRC HADOOP_CONF_DIR=$HADOOP_CONF $SPARK_HOME/bin/spark-submit \
-  --class com.nvent.loggerhead.KafkaAddressStream \
+  --class com.rootedinsights.loggerhead.KafkaAddressStream \
   --master $SPARK_MASTER \
   --jars $DATANUCLEUS_JARS \
   --files $HIVE_SITE \

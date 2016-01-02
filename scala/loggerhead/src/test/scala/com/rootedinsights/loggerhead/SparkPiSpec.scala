@@ -1,4 +1,4 @@
-package com.nvent.loggerhead
+package com.rootedinsights.loggerhead
 
 import org.scalatest.FunSpec
 import org.scalatest.BeforeAndAfter
